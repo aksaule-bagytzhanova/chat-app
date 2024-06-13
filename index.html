@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Chat App</title>
+  <style>
+    #onlineStatus { color: green; }
+    #typingStatus { color: blue; }
+  </style>
+</head>
+<body>
+  <div>
+    <span id="onlineStatus">Offline</span>
+  </div>
+  <div>
+    <span id="typingStatus"></span>
+  </div>
+  <input type="text" id="messageInput" placeholder="Type a message...">
+  <button id="sendButton">Send</button>
+
+  <script>
+    const userId = 'user1'; // Replace with dynamic userId
+    const toUserId = 'user2'; // Replace with dynamic toUserId
+    const ws = new WebSocket('ws://localhost:3000');
+    const onlineStatus = document.getElementById('onlineStatus');
+    const typingStatus = document.getElementById('typingStatus');
+    const messageInput = document.getElementById('messageInput');
+    const sendButton = document.getElementById('sendButton');
+
+    ws.onopen = () => {
+      ws.send(JSON.stringify({ type: 'login', userId }));
+    };
+
+    ws.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+
+      switch (data.type) {
+        case 'userStatus':
+          if (data.userId === toUserId) {
+            onlineStatus.textContent = data.status === 'online' ? 'Online' : 'Offline';
+          }
+          break;
+        case 'typing':
+          if (data.from === toUserId) {
+            typingStatus.textContent = 'Typing...';
+            setTimeout(() => { typingStatus.textContent = ''; }, 1000);
+          }
+          break;
+        case 'message':
+          if (data.from === toUserId) {
+            alert('Message from ' + data.from + ': ' + data.text);
+          }
+          break;
+      }
+    };
+
+    messageInput.addEventListener('input', () => {
+      ws.send(JSON.stringify({ type: 'typing', from: userId, to: toUserId }));
+    });
+
+    sendButton.addEventListener('click', () => {
+      const message = messageInput.value;
+      ws.send(JSON.stringify({ type: 'message', from: userId, to: toUserId, text: message }));
+      messageInput.value = '';
+    });
+
+    window.addEventListener('beforeunload', () => {
+      ws.send(JSON.stringify({ type: 'logout', userId }));
+    });
+  </script>
+</body>
+</html>

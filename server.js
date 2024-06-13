@@ -1,22 +1,16 @@
-import express from 'express';
-import http from 'http';
-import WebSocket from 'ws';
-import globalRouter from './global-router';
-import { logger } from './logger';
+const express = require('express');
+const http = require('http');
+const WebSocket = require('ws');
 
 const app = express();
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 
-app.use(express.json());
-app.use(logger);
-app.use(globalRouter);
-
-let users: { [key: string]: WebSocket } = {};
+let users = {};
 
 wss.on('connection', (ws) => {
   ws.on('message', (message) => {
-    const data = JSON.parse(message.toString());
+    const data = JSON.parse(message);
 
     switch (data.type) {
       case 'login':
@@ -70,7 +64,7 @@ wss.on('connection', (ws) => {
   });
 });
 
-function broadcast(data: any) {
+function broadcast(data) {
   wss.clients.forEach((client) => {
     if (client.readyState === WebSocket.OPEN) {
       client.send(JSON.stringify(data));
